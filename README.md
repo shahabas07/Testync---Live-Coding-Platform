@@ -1,1 +1,1 @@
-# Testync---Live-Coding-Platform
+# Testync Live-Coding-Platform

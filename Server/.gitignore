@@ -1,0 +1,26 @@
+# Ignore build artifacts
+/bin/
+/obj/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore IDE specific files
+.idea/
+*.vscode/
+
+# Ignore Go dependency files (but DO NOT ignore go.mod and go.sum)
+#/vendor/   # If you're using Go modules, you typically won't need this
+
+# Ignore temporary files
+*.log
+*.tmp
+
+# Ignore environment variables
+.env
+
+# Ignore system files
+.DS_Store
+Thumbs.db
