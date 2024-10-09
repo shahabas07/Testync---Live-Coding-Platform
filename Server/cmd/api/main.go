@@ -79,3 +79,4 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func protectedHandler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte("This is a protected route!"))
 }
+	
