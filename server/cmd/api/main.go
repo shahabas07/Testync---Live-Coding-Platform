@@ -9,8 +9,8 @@ import (
     "github.com/gorilla/mux"
     "github.com/go-redis/redis/v8"
     "github.com/gorilla/websocket"
-    "github.com/shahabas07/Testync/Server/internal/handlers"
-    "github.com/shahabas07/Testync/Server/internal/middleware"
+    "github.com/shahabas07/Testync/server/internal/handlers"
+    "github.com/shahabas07/Testync/server/internal/middleware"
     "github.com/joho/godotenv"
 )
 

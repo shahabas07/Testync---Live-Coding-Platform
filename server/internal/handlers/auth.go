@@ -12,7 +12,7 @@ import (
     "github.com/dgrijalva/jwt-go"
     "github.com/go-redis/redis/v8"
     "github.com/gorilla/sessions"
-    "github.com/shahabas07/Testync/Server/internal/models"
+    "github.com/shahabas07/Testync/server/internal/models"
     "github.com/gorilla/websocket"
 )
 
