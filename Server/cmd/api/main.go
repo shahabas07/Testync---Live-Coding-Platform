@@ -4,35 +4,42 @@ import (
     "context"
     "log"
     "net/http"
+    "os"
 
     "github.com/gorilla/mux"
     "github.com/go-redis/redis/v8"
     "github.com/gorilla/websocket"
     "github.com/shahabas07/Testync/Server/internal/handlers"
     "github.com/shahabas07/Testync/Server/internal/middleware"
+    "github.com/joho/godotenv"
 )
 
 var (
-    ctx = context.Background()
+    ctx        = context.Background()
     redisClient *redis.Client
-    upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return r.Header.Get("Origin") == "http://127.0.0.1:5500"
-		},
-	}
-	
+    upgrader   = websocket.Upgrader{
+        CheckOrigin: func(r *http.Request) bool {
+            return r.Header.Get("Origin") == os.Getenv("WEBSOCKET_ORIGIN")
+        },
+    }
 )
 
 func main() {
-	//redis
+    // Load environment variables from .env file
+    err := godotenv.Load()
+    if err != nil {
+        log.Fatalf("Error loading .env file")
+    }
+
+    // Redis connection
     redisClient = redis.NewClient(&redis.Options{
-        Addr: "localhost:6379",
-        Password: "", 
-        DB: 0,
+        Addr:     os.Getenv("REDIS_ADDR"),
+        Password: os.Getenv("REDIS_PASSWORD"), 
+        DB:       0,
     })
 
     // Test connection to Redis
-    _, err := redisClient.Ping(ctx).Result()
+    _, err = redisClient.Ping(ctx).Result()
     if err != nil {
         log.Fatalf("Could not connect to Redis: %v", err)
     }
@@ -46,7 +53,7 @@ func main() {
     router.HandleFunc("/logout", handlers.LogoutHandler(redisClient)).Methods("POST")
     router.HandleFunc("/protected", middleware.ValidateToken(protectedHandler)).Methods("GET")
     router.HandleFunc("/ws", wsHandler)
-	go handlers.HandleBroadcast()
+    go handlers.HandleBroadcast()
 
     // Start the server
     log.Println("Server is running on port 8080...")

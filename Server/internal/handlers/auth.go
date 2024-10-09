@@ -5,14 +5,15 @@ import (
     "encoding/json"
     "net/http"
     "time"
-	"log"
-	"sync"
+    "log"
+    "sync"
+    "os"
 
     "github.com/dgrijalva/jwt-go"
     "github.com/go-redis/redis/v8"
     "github.com/gorilla/sessions"
     "github.com/shahabas07/Testync/Server/internal/models"
-	"github.com/gorilla/websocket"
+    "github.com/gorilla/websocket"
 )
 
 type Message struct {
@@ -21,7 +22,7 @@ type Message struct {
 
 var (
     store       = sessions.NewCookieStore([]byte("secret-key"))
-    jwtKey      = []byte("jwt-secret")
+    jwtKey      = []byte(os.Getenv("JWT_SECRET"))
     redisClient *redis.Client
     ctx         = context.Background()
     upgrader    = websocket.Upgrader{
@@ -29,9 +30,9 @@ var (
             return true 
         },
     }
-	clients = make(map[*Client]bool)
-	broadcast = make(chan Message)
-	mu sync.Mutex
+    clients  = make(map[*Client]bool)
+    broadcast = make(chan Message)
+    mu       sync.Mutex
 )
 
 type Client struct {
@@ -40,7 +41,8 @@ type Client struct {
 
 func init() {
     redisClient = redis.NewClient(&redis.Options{
-        Addr: "localhost:6379", 
+        Addr: os.Getenv("REDIS_ADDR"), 
+        Password: os.Getenv("REDIS_PASSWORD"),
     })
 }
 
