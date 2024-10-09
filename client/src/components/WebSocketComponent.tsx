@@ -43,11 +43,11 @@ const WebSocketComponent: React.FC = () => {
         }
     };
 
-    const handleSendMessage = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleSendMessage = () => { // Removed 'event' parameter
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ content: 'Message from user' }));
         }
-    };
+    };    
 
     return (
         <div className="max-w-3xl mx-auto p-6 bg-gray-100 shadow-lg rounded-lg">
