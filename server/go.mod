@@ -1,4 +1,4 @@
-module github.com/shahabas07/Testync/Server
+module github.com/shahabas07/Testync/server
 
 go 1.23
 
