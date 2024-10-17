@@ -32,6 +32,7 @@ var (
     }
     clients  = make(map[*Client]bool)
     broadcast = make(chan Message)
+    binaryBroadcast = make(chan []byte) 
     mu       sync.Mutex
 )
 
@@ -119,16 +120,15 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
     }
     defer conn.Close()
 
-    // Register new client
     mu.Lock()
     client := &Client{Conn: conn}
     clients[client] = true
     mu.Unlock()
 
-    // Listen for new messages from the client
+    // Listen for messages (text or binary)
     for {
-        var msg Message
-        err := conn.ReadJSON(&msg) 
+        // Use message type to detect if it's text or binary
+        msgType, msgData, err := conn.ReadMessage() 
         if err != nil {
             log.Printf("Error reading message: %v", err)
             mu.Lock()
@@ -137,19 +137,32 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
             break
         }
 
-        // Send the message to the broadcast channel
-        broadcast <- msg
+        // Broadcast the message (text or binary)
+        if msgType == websocket.TextMessage {
+            // Handle text messages (JSON data)
+            var msg Message
+            err := json.Unmarshal(msgData, &msg)
+            if err != nil {
+                log.Println("Error unmarshalling JSON:", err)
+                continue
+            }
+            log.Printf("Received text message: %s", msg.Content)
+            broadcast <- msg
+        } else if msgType == websocket.BinaryMessage {
+            // Handle binary messages (audio/video data)
+            log.Println("Received binary message (audio/video)")
+            binaryBroadcast <- msgData // Separate channel for binary data
+        }
     }
 }
 
+
 func HandleMessages(conn *websocket.Conn) {
-    // Register the client
     client := &Client{Conn: conn}
     mu.Lock()
     clients[client] = true
     mu.Unlock()
 
-    // Unregister the client when done
     defer func() {
         mu.Lock()
         delete(clients, client)
@@ -158,32 +171,58 @@ func HandleMessages(conn *websocket.Conn) {
     }()
 
     for {
-        var msg Message
-        err := conn.ReadJSON(&msg) 
+        msgType, msgData, err := conn.ReadMessage()
         if err != nil {
             log.Printf("Error reading message: %v", err)
             return
         }
 
-        log.Printf("Received message: %s", msg.Content)
-
-        broadcast <- msg 
+        if msgType == websocket.TextMessage {
+            var msg Message
+            err := json.Unmarshal(msgData, &msg)
+            if err != nil {
+                log.Println("Error unmarshalling JSON:", err)
+                continue
+            }
+            log.Printf("Received text message: %s", msg.Content)
+            broadcast <- msg
+        } else if msgType == websocket.BinaryMessage {
+            log.Println("Received binary data (audio/video)")
+            binaryBroadcast <- msgData // Separate channel for binary data
+        }
     }
 }
 
+
 func HandleBroadcast() {
     for {
-        msg := <-broadcast 
-        mu.Lock() 
-        for client := range clients {
-            err := client.Conn.WriteJSON(msg) 
-            if err != nil {
-                log.Printf("Error broadcasting message: %v", err)
-                client.Conn.Close() 
-                delete(clients, client)
+        select {
+        case msg := <-broadcast:
+            // Text message broadcast
+            mu.Lock()
+            for client := range clients {
+                err := client.Conn.WriteJSON(msg)
+                if err != nil {
+                    log.Printf("Error broadcasting text message: %v", err)
+                    client.Conn.Close()
+                    delete(clients, client)
+                }
             }
+            mu.Unlock()
+
+        case binaryData := <-binaryBroadcast:
+            // Binary data broadcast (audio/video)
+            mu.Lock()
+            for client := range clients {
+                err := client.Conn.WriteMessage(websocket.BinaryMessage, binaryData)
+                if err != nil {
+                    log.Printf("Error broadcasting binary data: %v", err)
+                    client.Conn.Close()
+                    delete(clients, client)
+                }
+            }
+            mu.Unlock()
         }
-        mu.Unlock() 
     }
 }
 
